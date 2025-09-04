@@ -44,4 +44,20 @@ app.post("/shorten", async (req, res) => {
 });
 
 
+app.get("/:code", async (req, res) => {
+  const { code } = req.params;
+  if (!urlStore.has(code)) {
+    await LOG("backend", "error", "route", `Shortcode not found ${code}`);
+    return res.status(404).send("not found");
+  }
+  const record = urlStore.get(code);
+  if (Date.now() > record.expiry) {
+    await LOG("backend", "warn", "service", `Shortcode expired ${code}`);
+    return res.status(410).send("link expired");
+    }
+    record.clicks.push({ timestamp: new Date().toISOString() });
+    await LOG("backend", "info", "route", `redirecting ${code} to ${record.longUrl}`)
+    res.redirect(record.longUrl)
+});
+
 
