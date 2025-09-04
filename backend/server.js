@@ -28,8 +28,7 @@ app.post("/shorten", async (req, res) => {
     urlStore.set(code, { longUrl, expiry, clicks: [] });
     const shortUrl = `http://localhost:3000/${code}`;
     await LOG("backend", "info", "service", `shortened Url: ${shortUrl}`);
-      res.json({ shortUrl, expiry });
-      
+    res.json({ shortUrl, expiry });
   } catch (error) {
     await LOG(
       "backend",
@@ -43,7 +42,6 @@ app.post("/shorten", async (req, res) => {
   }
 });
 
-
 app.get("/:code", async (req, res) => {
   const { code } = req.params;
   if (!urlStore.has(code)) {
@@ -54,10 +52,28 @@ app.get("/:code", async (req, res) => {
   if (Date.now() > record.expiry) {
     await LOG("backend", "warn", "service", `Shortcode expired ${code}`);
     return res.status(410).send("link expired");
-    }
-    record.clicks.push({ timestamp: new Date().toISOString() });
-    await LOG("backend", "info", "route", `redirecting ${code} to ${record.longUrl}`)
-    res.redirect(record.longUrl)
+  }
+  record.clicks.push({ timestamp: new Date().toISOString() });
+  await LOG(
+    "backend",
+    "info",
+    "route",
+    `redirecting ${code} to ${record.longUrl}`
+  );
+  res.redirect(record.longUrl);
 });
 
+app.get("/stats", async (req, res) => {
+  const stats = Array.from(urlStore.entries()).map(([code, data]) => ({
+    code,
+    longUrl: data.longUrl,
+    expiry: data.expiry,
+    clicks: data.clicks.length,
+  }));
+    await LOG("backend", "info", "service", "stats requested");
+    res.json(stats);
+});
 
+app.listen(5000, () => {
+    console.log("backend is running on port 5000")
+})
